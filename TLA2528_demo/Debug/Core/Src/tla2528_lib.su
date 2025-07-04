@@ -1,0 +1,8 @@
+../Core/Src/tla2528_lib.c:77:19:TLA2528_Write_With_OPCODE	32	static
+../Core/Src/tla2528_lib.c:97:9:TLA2528_Read_Register_With_OPCODE	32	static
+../Core/Src/tla2528_lib.c:128:6:Print_Binary	24	static
+../Core/Src/tla2528_lib.c:135:6:Read_Register_OPCODE	24	static
+../Core/Src/tla2528_lib.c:146:6:Read_All_Registers	40	static
+../Core/Src/tla2528_lib.c:180:10:TLA2528_Read_ADC_SingleChannel	40	static
+../Core/Src/tla2528_lib.c:211:6:TLA2528_Read_ADC_AllChannels	32	static
+../Core/Src/tla2528_lib.c:217:7:TLA2528_Convert_To_Voltage	24	static

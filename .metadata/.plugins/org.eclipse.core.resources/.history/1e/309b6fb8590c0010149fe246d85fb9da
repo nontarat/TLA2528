@@ -1,0 +1,206 @@
+/*
+ * tla2528_lib.c
+ *
+ *  Created on: Mar 28, 2025
+ *      Author: user
+ */
+#include "tla2528_lib.h"
+
+// ฟังก์ชันอ่านค่ารีจิสเตอร์
+uint8_t TLA2528_Read_Register(uint8_t reg_address)
+{
+    uint8_t reg_value = 0;
+    HAL_StatusTypeDef status;
+
+    // ใช้ HAL I2C สำหรับอ่านค่ารีจิสเตอร์
+    status = HAL_I2C_Mem_Read(&hi2c5, TLA2528_I2C_ADDRESS << 1, reg_address, I2C_MEMADD_SIZE_8BIT, &reg_value, 1, 1000);
+
+    // เช็คสถานะการอ่าน
+    if (status != HAL_OK) {
+        // หากเกิดข้อผิดพลาด
+        printf("I2C Read Error: 0x%02X\n", reg_address);
+        return 0;  // คืนค่าผลลัพธ์ 0 หากเกิดข้อผิดพลาด
+    }
+
+    // คืนค่าที่อ่านได้จากรีจิสเตอร์
+    return reg_value;
+}
+
+HAL_StatusTypeDef TLA2528_Write_Register(uint8_t reg_address, uint8_t reg_value)
+{
+    HAL_StatusTypeDef status;
+
+    // ใช้ HAL I2C สำหรับเขียนค่าไปยังรีจิสเตอร์
+    status = HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDRESS << 1, reg_address, I2C_MEMADD_SIZE_8BIT, &reg_value, 1, 1000);
+
+    // เช็คสถานะการเขียน
+    if (status != HAL_OK) {
+        printf("I2C Write Error: 0x%02X\n", reg_address);
+        return HAL_ERROR;  // คืนค่า Error ถ้าเกิดปัญหา
+    }
+
+    return HAL_OK;
+}
+
+
+/*
+ * 		//uint8_t status1 = TLA2528_Read_System_Status();
+		//TLA2528_Print_System_Status(status1);
+ * Check bit for SYSTEMSTATUS ADDRESS 0x00
+ */
+void print_reg_sys_status(void)
+{
+	uint8_t general_cfg_value = TLA2528_Read_Register(GENERAL_CFG_ADDRESS);
+	printf("GENERAL_CFG (binary): %08b\n", general_cfg_value);
+}
+uint8_t TLA2528_Check_Status(void)
+{
+	  uint8_t status;
+
+	    // อ่านค่าจากรีจิสเตอร์ SYSTEM_STATUS (0x00)
+	    status = TLA2528_Read_Register(SYSTEM_STATUS_ADDRESS);
+
+	    // ตรวจสอบว่า sequencer กำลังทำงานหรือไม่
+	    if (status & SEQ_STATUS_MASK) {
+	        // ถ้า SEQ_STATUS_RUNNING (0x40), อุปกรณ์กำลังทำงาน
+	        return 1;
+	    }
+
+	    // ตรวจสอบว่ามีข้อผิดพลาดเกี่ยวกับการสูญเสียพลังงานหรือไม่
+	    if (status & BOR_MASK) {
+	        // ถ้า BOR_ERROR (0x01), อุปกรณ์ไม่พร้อมใช้งาน
+	        return 0;
+	    }
+
+	    // ตรวจสอบว่า CRC ไม่มีข้อผิดพลาด
+	    if (status & CRC_ERR_FUSE_MASK || status & CRC_ERR_IN_MASK) {
+	        // ถ้ามีข้อผิดพลาด CRC, อุปกรณ์ไม่พร้อมใช้งาน
+	        return 0;
+	    }
+
+	    // ถ้าไม่มีข้อผิดพลาดใดๆ และ SEQ_STATUS_RUNNING
+	    return 1;  // อุปกรณ์พร้อมใช้งาน
+}
+
+void TLA2528_Init(void)
+{
+    // ตั้งค่าโหมดการทำงาน
+    HAL_Delay(100);  // หน่วงเวลา 100ms
+
+
+    // ตรวจสอบสถานะของ TLA2528
+    if (TLA2528_Check_Status() == 0) {
+        printf("TLA2528 not ready\n");
+        return;
+    }
+   // TLA2528_Set_Output_Mode(0x02);  // สมมติว่า 0x02 คือโหมดที่ต้องการ
+
+    // ทำการตั้งค่าพารามิเตอร์อื่นๆ ที่จำเป็น
+    // ...
+}
+
+// ฟังก์ชันรีเซตระบบ TLA2528 โดยใช้คำสั่ง 0x80
+void TLA2528_Reset_System(void)
+{
+    uint8_t reset_command = 0x80;  // คำสั่งรีเซต (จาก datasheet)
+
+    // เขียนคำสั่งรีเซตไปยังรีจิสเตอร์ SYSTEM_STATUS (ที่อยู่ 0x00)
+    if (HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDRESS << 1, SYSTEM_STATUS_ADDRESS, I2C_MEMADD_SIZE_8BIT, &reset_command, 1, 1000) != HAL_OK) {
+        printf("Failed to reset TLA2528\n");
+        return;
+    }
+
+    printf("TLA2528 reset successfully\n");
+
+    // คุณอาจต้องหน่วงเวลาเล็กน้อยหลังจากรีเซต
+    HAL_Delay(100);  // หน่วงเวลา 100ms
+}
+
+// ฟังก์ชันอ่านค่า 8 บิตจากรีจิสเตอร์ SYSTEM_STATUS (0x00)
+uint8_t TLA2528_Read_System_Status(void)
+{
+    uint8_t status = 0;
+
+    // อ่านค่ารีจิสเตอร์ SYSTEM_STATUS (ที่อยู่ 0x00)
+    status = TLA2528_Read_Register(SYSTEM_STATUS_ADDRESS);
+
+    // คืนค่าที่อ่านจากรีจิสเตอร์ SYSTEM_STATUS
+    return status;
+}
+
+
+// ฟังก์ชันแสดงสถานะของแต่ละฟิลด์ใน SYSTEM_STATUS
+void TLA2528_Print_System_Status(uint8_t status)
+{
+	 // แสดงค่า 8 บิตในฐานสอง
+	    printf("SYSTEM_STATUS (binary): ");
+	    for (int i = 7; i >= 0; i--) {
+	        printf("%d", (status >> i) & 0x01);
+	    }
+	    printf("\n");
+
+	/*
+    // ตรวจสอบสถานะของ SEQ_STATUS (Bit 6)
+    if (status & SEQ_STATUS_MASK) {
+        printf("SEQ_STATUS: RUNNING\n");
+    } else {
+        printf("SEQ_STATUS: STOPPED\n");
+    }
+
+    // ตรวจสอบสถานะของ I2C_SPEED (Bit 5)
+    if (status & I2C_SPEED_MASK) {
+        printf("I2C_SPEED: HIGH\n");
+    } else {
+        printf("I2C_SPEED: NORMAL\n");
+    }
+
+    // ตรวจสอบสถานะของ OSR_DONE (Bit 3)
+    if (status & OSR_DONE_MASK) {
+        printf("OSR_DONE: COMPLETE\n");
+    } else {
+        printf("OSR_DONE: WAITING\n");
+    }
+
+    // ตรวจสอบสถานะของ CRC_ERR_FUSE (Bit 2)
+    if (status & CRC_ERR_FUSE_MASK) {
+        printf("CRC_ERR_FUSE: ERROR\n");
+    } else {
+        printf("CRC_ERR_FUSE: OKAY\n");
+    }
+
+    // ตรวจสอบสถานะของ CRC_ERR_IN (Bit 1)
+    if (status & CRC_ERR_IN_MASK) {
+        printf("CRC_ERR_IN: ERROR\n");
+    } else {
+        printf("CRC_ERR_IN: OKAY\n");
+    }
+
+    // ตรวจสอบสถานะของ BOR (Bit 0)
+    if (status & BOR_MASK) {
+        printf("BOR: ERROR\n");
+    } else {
+        printf("BOR: OKAY\n");
+    }*/
+}
+/*
+ *DATA_CFG Reg address 0x2
+ */
+void Read_Data_CFG(void)
+{
+	uint8_t data_cfg = TLA2528_Read_Register(DATA_CFG_ADDRESS);
+	printf("Data CFG (binary): %08b\n", data_cfg);
+}
+void TLA2528_Reset(void) {
+    uint8_t reset_command = RST_START; // 0x01
+    HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDRESS << 1, GENERAL_CFG_ADDRESS, I2C_MEMADD_SIZE_8BIT, &reset_command, 1, 1000);
+    HAL_Delay(10); // รอให้รีเซ็ตเสร็จ
+}
+
+void TLA2528_Start_Calibration(void) {
+    uint8_t cal_command = CAL_START; // 0x02
+    HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDRESS << 1, GENERAL_CFG_ADDRESS, I2C_MEMADD_SIZE_8BIT, &cal_command, 1, 1000);
+    HAL_Delay(10); // รอให้คาลิเบรตเสร็จ
+}
+
+
+

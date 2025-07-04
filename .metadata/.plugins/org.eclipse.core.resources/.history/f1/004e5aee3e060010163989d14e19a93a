@@ -1,0 +1,29 @@
+/*
+ * TLA2528.cpp
+ *
+ *  Created on: Mar 21, 2025
+ *      Author: user
+ */
+
+#include "TLA2528.h"
+
+
+void TLA2528_Init(TLA2528 *dev, I2C_HandleTypeDef *hi2c, uint8_t addr) {
+    dev->hi2c = hi2c;
+    dev->address = addr;
+}
+
+HAL_StatusTypeDef TLA2528_ReadRegister(TLA2528 *dev, uint8_t reg, uint8_t *data) {
+    return HAL_I2C_Mem_Read(dev->hi2c, dev->address << 1, reg, I2C_MEMADD_SIZE_8BIT, data, 1, 100);
+}
+
+HAL_StatusTypeDef TLA2528_WriteRegister(TLA2528 *dev, uint8_t reg, uint8_t data) {
+    return HAL_I2C_Mem_Write(dev->hi2c, dev->address << 1, reg, I2C_MEMADD_SIZE_8BIT, &data, 1, 100);
+}
+
+uint16_t TLA2528_ReadChannel(TLA2528 *dev, uint8_t channel) {
+    uint8_t data[2] = {0};
+    TLA2528_ReadRegister(dev, channel, &data[0]);
+    TLA2528_ReadRegister(dev, channel + 1, &data[1]);
+    return (data[0] << 8) | data[1];
+}

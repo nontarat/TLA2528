@@ -1,0 +1,10 @@
+13:26:52 **** Incremental Build of configuration Debug for project STM32H723_Nucleo_ETH ****
+make -j4 all 
+arm-none-eabi-size  STM32H723_Nucleo_ETH.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 101800	    244	  88568	 190612	  2e894	STM32H723_Nucleo_ETH.elf
+Finished building: default.size.stdout
+ 
+
+13:26:54 Build Finished. 0 errors, 0 warnings. (took 2s.409ms)
+

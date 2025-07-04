@@ -1,0 +1,8 @@
+../LWIP/App/tcp_client.c:13:6:set_socket_timeout	40	static
+../LWIP/App/tcp_client.c:23:6:send_post_request	592	static
+../LWIP/App/tcp_client.c:48:6:send_get_request	320	static
+../LWIP/App/tcp_client.c:68:6:send_post_request_adc	592	static
+../LWIP/App/tcp_client.c:92:6:connect_to_server	616	static
+../LWIP/App/tcp_client.c:152:6:parse_led_status	16	static
+../LWIP/App/tcp_client.c:218:6:read_adc_and_send_data	712	static
+../LWIP/App/tcp_client.c:290:6:user_input	616	static

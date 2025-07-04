@@ -1,0 +1,100 @@
+11:20:51 **** Incremental Build of configuration Debug for project TLA2528_test ****
+make -j4 all 
+arm-none-eabi-gcc "../Core/Src/tla2528.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_PWR_LDO_SUPPLY -DUSE_HAL_DRIVER -DSTM32H723xx -c -I../Core/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/tla2528.d" -MT"Core/Src/tla2528.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Src/tla2528.o"
+arm-none-eabi-gcc -o "TLA2528_test.elf" @"objects.list"   -mcpu=cortex-m7 -T"D:\TLA2528\TLA2528_test\STM32H723ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TLA2528_test.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TLA2528_test.elf
+ 
+arm-none-eabi-size  TLA2528_test.elf 
+arm-none-eabi-objdump -h -S TLA2528_test.elf  > "TLA2528_test.list"
+   text	   data	    bss	    dec	    hex	filename
+  29624	    108	   2156	  31888	   7c90	TLA2528_test.elf
+Finished building: default.size.stdout
+ 
+Finished building: TLA2528_test.list
+ 
+11:20:55 **** Incremental Build of configuration Debug for project TLA2528_test ****
+make -j4 all 
+arm-none-eabi-size  TLA2528_test.elf 
+   text	   data	    bss	    dec	    hex	filename
+  29624	    108	   2156	  31888	   7c90	TLA2528_test.elf
+Finished building: default.size.stdout
+ 
+11:30:58 **** Incremental Build of configuration Debug for project TLA2528_demo ****
+make -j4 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_PWR_LDO_SUPPLY -DUSE_HAL_DRIVER -DSTM32H723xx -c -I../Core/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TLA2528_demo.elf" @"objects.list"   -mcpu=cortex-m7 -T"D:\TLA2528\TLA2528_demo\STM32H723ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TLA2528_demo.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TLA2528_demo.elf
+ 
+arm-none-eabi-size  TLA2528_demo.elf 
+arm-none-eabi-objdump -h -S TLA2528_demo.elf  > "TLA2528_demo.list"
+   text	   data	    bss	    dec	    hex	filename
+  37092	    472	   2136	  39700	   9b14	TLA2528_demo.elf
+Finished building: default.size.stdout
+ 
+Finished building: TLA2528_demo.list
+ 
+11:31:57 **** Incremental Build of configuration Debug for project TLA2528_demo ****
+make -j4 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_PWR_LDO_SUPPLY -DUSE_HAL_DRIVER -DSTM32H723xx -c -I../Core/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TLA2528_demo.elf" @"objects.list"   -mcpu=cortex-m7 -T"D:\TLA2528\TLA2528_demo\STM32H723ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TLA2528_demo.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TLA2528_demo.elf
+ 
+arm-none-eabi-size  TLA2528_demo.elf 
+arm-none-eabi-objdump -h -S TLA2528_demo.elf  > "TLA2528_demo.list"
+   text	   data	    bss	    dec	    hex	filename
+  37092	    472	   2136	  39700	   9b14	TLA2528_demo.elf
+Finished building: default.size.stdout
+ 
+Finished building: TLA2528_demo.list
+ 
+14:31:53 **** Build of configuration Debug for project STM32H723_Nucleo_ETH ****
+make -j4 all 
+arm-none-eabi-gcc "../LWIP/App/tcp_client.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H723xx -c -I../Core/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -I../LWIP/App -I../LWIP/Target -I../Middlewares/Third_Party/LwIP/src/include -I../Middlewares/Third_Party/LwIP/system -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../Drivers/BSP/Components/lan8742 -I../Middlewares/Third_Party/LwIP/src/include/netif/ppp -I../Middlewares/Third_Party/LwIP/src/include/lwip -I../Middlewares/Third_Party/LwIP/src/include/lwip/apps -I../Middlewares/Third_Party/LwIP/src/include/lwip/priv -I../Middlewares/Third_Party/LwIP/src/include/lwip/prot -I../Middlewares/Third_Party/LwIP/src/include/netif -I../Middlewares/Third_Party/LwIP/src/include/compat/posix -I../Middlewares/Third_Party/LwIP/src/include/compat/posix/arpa -I../Middlewares/Third_Party/LwIP/src/include/compat/posix/net -I../Middlewares/Third_Party/LwIP/src/include/compat/posix/sys -I../Middlewares/Third_Party/LwIP/src/include/compat/stdc -I../Middlewares/Third_Party/LwIP/system/arch -I"D:/TLA2528/eth+rtos.zip_expanded/STM32H723_Nucleo_ETH/Middlewares/Third_Party/cJSON" -O2 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"LWIP/App/tcp_client.d" -MT"LWIP/App/tcp_client.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "LWIP/App/tcp_client.o"
+arm-none-eabi-gcc -o "STM32H723_Nucleo_ETH.elf" @"objects.list"   -mcpu=cortex-m7 -T"D:\TLA2528\eth+rtos.zip_expanded\STM32H723_Nucleo_ETH\STM32H723ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32H723_Nucleo_ETH.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.1.0.202410251130/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: STM32H723_Nucleo_ETH.elf has a LOAD segment with RWX permissions
+Finished building target: STM32H723_Nucleo_ETH.elf
+ 
+arm-none-eabi-size  STM32H723_Nucleo_ETH.elf 
+arm-none-eabi-objdump -h -S STM32H723_Nucleo_ETH.elf  > "STM32H723_Nucleo_ETH.list"
+   text	   data	    bss	    dec	    hex	filename
+ 101800	    244	  88568	 190612	  2e894	STM32H723_Nucleo_ETH.elf
+Finished building: default.size.stdout
+ 
+Finished building: STM32H723_Nucleo_ETH.list
+ 
+14:37:50 **** Incremental Build of configuration Debug for project STM32H723_Nucleo_ETH ****
+make -j4 all 
+arm-none-eabi-gcc "../LWIP/App/tcp_client.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H723xx -c -I../Core/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -I../LWIP/App -I../LWIP/Target -I../Middlewares/Third_Party/LwIP/src/include -I../Middlewares/Third_Party/LwIP/system -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../Drivers/BSP/Components/lan8742 -I../Middlewares/Third_Party/LwIP/src/include/netif/ppp -I../Middlewares/Third_Party/LwIP/src/include/lwip -I../Middlewares/Third_Party/LwIP/src/include/lwip/apps -I../Middlewares/Third_Party/LwIP/src/include/lwip/priv -I../Middlewares/Third_Party/LwIP/src/include/lwip/prot -I../Middlewares/Third_Party/LwIP/src/include/netif -I../Middlewares/Third_Party/LwIP/src/include/compat/posix -I../Middlewares/Third_Party/LwIP/src/include/compat/posix/arpa -I../Middlewares/Third_Party/LwIP/src/include/compat/posix/net -I../Middlewares/Third_Party/LwIP/src/include/compat/posix/sys -I../Middlewares/Third_Party/LwIP/src/include/compat/stdc -I../Middlewares/Third_Party/LwIP/system/arch -I"D:/TLA2528/eth+rtos.zip_expanded/STM32H723_Nucleo_ETH/Middlewares/Third_Party/cJSON" -O2 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"LWIP/App/tcp_client.d" -MT"LWIP/App/tcp_client.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "LWIP/App/tcp_client.o"
+arm-none-eabi-gcc -o "STM32H723_Nucleo_ETH.elf" @"objects.list"   -mcpu=cortex-m7 -T"D:\TLA2528\eth+rtos.zip_expanded\STM32H723_Nucleo_ETH\STM32H723ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32H723_Nucleo_ETH.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.1.0.202410251130/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: STM32H723_Nucleo_ETH.elf has a LOAD segment with RWX permissions
+Finished building target: STM32H723_Nucleo_ETH.elf
+ 
+arm-none-eabi-size  STM32H723_Nucleo_ETH.elf 
+arm-none-eabi-objdump -h -S STM32H723_Nucleo_ETH.elf  > "STM32H723_Nucleo_ETH.list"
+   text	   data	    bss	    dec	    hex	filename
+ 101800	    244	  88568	 190612	  2e894	STM32H723_Nucleo_ETH.elf
+Finished building: default.size.stdout
+ 
+Finished building: STM32H723_Nucleo_ETH.list
+ 
+15:54:45 **** Incremental Build of configuration Debug for project STM32H723_Nucleo_ETH ****
+make -j4 all 
+arm-none-eabi-size  STM32H723_Nucleo_ETH.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 101800	    244	  88568	 190612	  2e894	STM32H723_Nucleo_ETH.elf
+Finished building: default.size.stdout
+ 
+15:56:03 **** Incremental Build of configuration Debug for project STM32H723_Nucleo_ETH ****
+make -j4 all 
+arm-none-eabi-size  STM32H723_Nucleo_ETH.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 101800	    244	  88568	 190612	  2e894	STM32H723_Nucleo_ETH.elf
+Finished building: default.size.stdout
+ 
+13:26:52 **** Incremental Build of configuration Debug for project STM32H723_Nucleo_ETH ****
+make -j4 all 
+arm-none-eabi-size  STM32H723_Nucleo_ETH.elf 
+   text	   data	    bss	    dec	    hex	filename
+ 101800	    244	  88568	 190612	  2e894	STM32H723_Nucleo_ETH.elf
+Finished building: default.size.stdout
+ 

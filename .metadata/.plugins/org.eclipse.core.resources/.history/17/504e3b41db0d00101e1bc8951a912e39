@@ -1,0 +1,451 @@
+/*
+ * tla2528_lib.c
+ *
+ *  Created on: Mar 28, 2025
+ *      Author: user
+ */
+#include "tla2528_lib.h"
+#define ADC_RESOLUTION  4096.0  // 12-bit ADC (0-4095)
+#define V_REF           3.3     // แรงดันอ้างอิง (เปลี่ยนได้ตามจริง)
+// ฟังก์ชันอ่านค่ารีจิสเตอร์
+uint8_t TLA2528_Read_Register(uint8_t reg_address) {
+	uint8_t reg_value = 0;
+	HAL_StatusTypeDef status;
+
+	// Use HAL I2C to read the register value
+	status = HAL_I2C_Mem_Read(&hi2c5, TLA2528_I2C_ADDRESS << 1, reg_address,
+	I2C_MEMADD_SIZE_8BIT, &reg_value, 1, 1000);
+
+	// Check the read status
+	if (status != HAL_OK) {
+		// Print error message if read fails
+		printf("I2C Read Error: 0x%02X\n", reg_address);
+		return 0;  //  Return 0 if an error occurs
+	}
+
+	// Return the value read from the register
+	return reg_value;
+}
+
+HAL_StatusTypeDef TLA2528_Write_Register(uint8_t reg_address, uint8_t reg_value) {
+	HAL_StatusTypeDef status;
+
+	// Use HAL I2C to write value to the register
+	status = HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDRESS << 1, reg_address,
+	I2C_MEMADD_SIZE_8BIT, &reg_value, 1, 1000);
+
+	// Check the write status
+	if (status != HAL_OK) {
+		printf("I2C Write Error: 0x%02X\n", reg_address);
+		return HAL_ERROR;  // Return error if write fails
+	}
+
+	return HAL_OK;
+}
+
+void TLA2528_Set_Channel(uint8_t channel)
+{
+    if (channel > 7) return;  // มีเพียง 8 ช่อง (0-7)
+
+    uint8_t data = channel & MANUAL_CHID_MASK;  // กรองเฉพาะ 4 บิตล่าง
+    HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDRESS << 1, MANUAL_CH_SEL_ADDRESS, I2C_MEMADD_SIZE_8BIT, &data, 1, 100);
+}
+
+uint16_t TLA2528_Read_Channel(uint8_t channel)
+{
+    uint8_t buffer[2];
+
+    // ตั้งค่าช่องที่ต้องการอ่าน
+    TLA2528_Set_Channel(channel);
+
+    // รอให้ ADC แปลงค่า
+    HAL_Delay(1);
+
+    // อ่านค่า ADC 2 ไบต์
+    HAL_I2C_Master_Receive(&hi2c5, TLA2528_I2C_ADDRESS << 1, buffer, 2, 100);
+
+    // รวมค่า 2 ไบต์เป็น 16-bit
+    return (buffer[0] << 8) | buffer[1];
+}
+float TLA2528_Convert_To_Voltage(uint16_t adc_value)
+{
+    return (adc_value / ADC_RESOLUTION) * V_REF;
+}
+
+
+void TLA2528_Read_All_Channels()
+{
+    uint16_t adc_values[8];
+    float voltages[8];
+
+    for (uint8_t ch = 0; ch < 8; ch++)
+    {
+        adc_values[ch] = TLA2528_Read_Channel(ch); // อ่านค่า ADC
+        voltages[ch] = TLA2528_Convert_To_Voltage(adc_values[ch]); // แปลงเป็น V
+        printf("Channel %d: %u (%.3f V)\n", ch, adc_values[ch], voltages[ch]);
+    }
+}
+
+/*
+ * 		//uint8_t status1 = TLA2528_Read_System_Status();
+ //TLA2528_Print_System_Status(status1);
+ * Check bit for SYSTEMSTATUS ADDRESS 0x00
+ */
+// Function to print the value of GENERAL_CFG register
+void print_reg_sys_status(void) {
+	uint8_t general_cfg_value = TLA2528_Read_Register(GENERAL_CFG_ADDRESS);
+	printf("GENERAL_CFG (binary): %08b\n", general_cfg_value);
+}
+
+// Function to check the status of TLA2528
+
+uint8_t TLA2528_Check_Status(void) {
+	uint8_t status;
+
+	// Read the SYSTEM_STATUS register (0x00)
+	status = TLA2528_Read_Register(SYSTEM_STATUS_ADDRESS);
+
+	// Check if the sequencer is running
+	if (status & SEQ_STATUS_MASK) {
+		// SEQ_STATUS_RUNNING (0x40), device is operational
+		return 1;
+	}
+
+	// Check if there is a power loss error
+	if (status & BOR_MASK) {
+		// BOR_ERROR (0x01), device is not ready
+		return 0;
+	}
+
+	// Check for CRC errors
+	if (status & CRC_ERR_FUSE_MASK || status & CRC_ERR_IN_MASK) {
+		// CRC error detected, device is not ready
+		return 0;
+	}
+
+	return 1;  // Device is ready
+}
+
+void TLA2528_Init(void) {
+	// ตั้งค่าโหมดการทำงาน
+	HAL_Delay(100);  // Delay 100ms
+	// Check if TLA2528 is ready
+	if (TLA2528_Check_Status() == 0) {
+		printf("TLA2528 not ready\n");
+		return;
+	}
+	// TLA2528_Set_Output_Mode(0x02);  // สมมติว่า 0x02 คือโหมดที่ต้องการ
+
+	// ทำการตั้งค่าพารามิเตอร์อื่นๆ ที่จำเป็น
+	// ...
+}
+
+// Function to reset the system of TLA2528
+void TLA2528_Reset_System(void) {
+	uint8_t reset_command = 0x80;  // // Reset command
+
+	// Write reset command to SYSTEM_STATUS register
+	if (HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDRESS << 1,
+	SYSTEM_STATUS_ADDRESS, I2C_MEMADD_SIZE_8BIT, &reset_command, 1, 1000)
+			!= HAL_OK) {
+		printf("Failed to reset TLA2528\n");
+		return;
+	}
+
+	printf("TLA2528 reset successfully\n");
+	HAL_Delay(100);  // Delay 100ms
+}
+
+// Function to read SYSTEM_STATUS register
+uint8_t TLA2528_Read_System_Status(void) {
+	uint8_t status = 0;
+
+	// อ่านค่ารีจิสเตอร์ SYSTEM_STATUS (ที่อยู่ 0x00)
+	status = TLA2528_Read_Register(SYSTEM_STATUS_ADDRESS);
+
+	// คืนค่าที่อ่านจากรีจิสเตอร์ SYSTEM_STATUS
+	return status;
+}
+
+// ฟังก์ชันแสดงสถานะของแต่ละฟิลด์ใน SYSTEM_STATUS
+void TLA2528_Print_System_Status(uint8_t status) {
+	// แสดงค่า 8 บิตในฐานสอง
+	printf("SYSTEM_STATUS (binary): ");
+	for (int i = 7; i >= 0; i--) {
+		printf("%d", (status >> i) & 0x01);
+	}
+	printf("\n");
+
+	/*
+	 // ตรวจสอบสถานะของ SEQ_STATUS (Bit 6)
+	 if (status & SEQ_STATUS_MASK) {
+	 printf("SEQ_STATUS: RUNNING\n");
+	 } else {
+	 printf("SEQ_STATUS: STOPPED\n");
+	 }
+
+	 // ตรวจสอบสถานะของ I2C_SPEED (Bit 5)
+	 if (status & I2C_SPEED_MASK) {
+	 printf("I2C_SPEED: HIGH\n");
+	 } else {
+	 printf("I2C_SPEED: NORMAL\n");
+	 }
+
+	 // ตรวจสอบสถานะของ OSR_DONE (Bit 3)
+	 if (status & OSR_DONE_MASK) {
+	 printf("OSR_DONE: COMPLETE\n");
+	 } else {
+	 printf("OSR_DONE: WAITING\n");
+	 }
+
+	 // ตรวจสอบสถานะของ CRC_ERR_FUSE (Bit 2)
+	 if (status & CRC_ERR_FUSE_MASK) {
+	 printf("CRC_ERR_FUSE: ERROR\n");
+	 } else {
+	 printf("CRC_ERR_FUSE: OKAY\n");
+	 }
+
+	 // ตรวจสอบสถานะของ CRC_ERR_IN (Bit 1)
+	 if (status & CRC_ERR_IN_MASK) {
+	 printf("CRC_ERR_IN: ERROR\n");
+	 } else {
+	 printf("CRC_ERR_IN: OKAY\n");
+	 }
+
+	 // ตรวจสอบสถานะของ BOR (Bit 0)
+	 if (status & BOR_MASK) {
+	 printf("BOR: ERROR\n");
+	 } else {
+	 printf("BOR: OKAY\n");
+	 }*/
+}
+
+/*
+ * GENERAL_CFG Register (Address = 0x1)
+ */
+void Read_GENERAL_CFG(void) {
+	uint8_t general_cfg = TLA2528_Read_Register(GENERAL_CFG_ADDRESS);
+	printf("General CFG (binary): %08b\n", general_cfg);
+}
+/*1. ตั้งค่าเริ่มต้นการแปลง ADC
+ * TLA2528_Config(1, 0, 0, 0);
+ * เริ่มแปลง ADC (CNVST = 1) โดยไม่รีเซ็ตหรือสอบเทียบ
+ *
+ * 2.รีเซ็ตช่องสัญญาณ ADC
+ * TLA2528_Config(0, 1, 0, 0);
+ * รีเซ็ตอินพุต ADC (CH_RST = 1)
+ *
+ * 3.ทำการสอบเทียบ (Calibration)
+ * TLA2528_Config(0, 0, 1, 0);
+ * เริ่มสอบเทียบ (CAL = 1)
+ *
+ * 4. รีเซ็ตอุปกรณ์
+ * TLA2528_Config(0, 0, 0, 1);
+ * HAL_Delay(10);  // รอให้รีเซ็ตเสร็จ
+ *  รีเซ็ตอุปกรณ์ (RST = 1)
+ */
+
+/* ฟังก์ชันตั้งค่าการทำงานของ GENERAL_CFG Register */
+void TLA2528_Config(uint8_t cnvst, uint8_t ch_rst, uint8_t cal, uint8_t rst) {
+	uint8_t config = 0x00;
+
+	if (cnvst)
+		config |= 0x08;  // CNVST (Start Conversion)
+	if (ch_rst)
+		config |= 0x04;  // CH_RST (Channel Reset)
+	if (cal)
+		config |= 0x02;  // CAL (Calibration Start)
+	if (rst)
+		config |= 0x01;  // RST (Reset Device)
+
+	// เขียนค่าลงรีจิสเตอร์
+	TLA2528_Write_Register(GENERAL_CFG_ADDRESS, config);
+}
+
+/*
+ *DATA_CFG Reg address 0x2
+ */
+void Read_Data_CFG(void) {
+	uint8_t data_cfg = TLA2528_Read_Register(DATA_CFG_ADDRESS);
+	printf("Data CFG (binary): %08b\n", data_cfg);
+}
+void TLA2528_Reset(void) {
+	uint8_t reset_command = RST_START; // 0x01
+	HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDRESS << 1, GENERAL_CFG_ADDRESS,
+	I2C_MEMADD_SIZE_8BIT, &reset_command, 1, 1000);
+	HAL_Delay(10); // รอให้รีเซ็ตเสร็จ
+}
+
+void TLA2528_Start_Calibration(void) {
+	uint8_t cal_command = CAL_START; // 0x02
+	HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDRESS << 1, GENERAL_CFG_ADDRESS,
+	I2C_MEMADD_SIZE_8BIT, &cal_command, 1, 1000);
+	HAL_Delay(10); // รอให้คาลิเบรตเสร็จ
+}
+
+
+/*
+ * OSR_CFG Register Address 0x3
+ *
+ */
+void Read_OSR_CFG (void)
+{
+	uint8_t osr_ofg = TLA2528_Read_Register(OSR_CFG_ADDRESS);
+	printf("OSR CFG (binary): %08b\n",osr_ofg);
+}
+
+
+/*
+ *
+ *example set osr
+ *example TLA2528_Set_OSR(OSR_16);  // Set OSR to 16x oversampling
+ *example
+ */
+void TLA2528_Set_OSR(uint8_t osr_value) {
+    uint8_t reg_value;
+
+    // Read the current value of the OSR_CFG register
+    reg_value = TLA2528_Read_Register(OSR_CFG_ADDRESS);
+
+    // Clear the OSR bits (Bit 2:0) while keeping reserved bits unchanged
+    reg_value &= ~OSR_MASK;
+
+    // Set the new OSR value
+    reg_value |= (osr_value & OSR_MASK);
+
+    // Write the updated value back to the OSR_CFG register
+    TLA2528_Write_Register(OSR_CFG_ADDRESS, reg_value);
+}
+
+/*
+ * OPMODE_CFG Register (Address = 0x4)
+ */
+
+
+/*example
+ * TLA2528_Set_OpMode(OSC_SEL_LOW_POWER, 0x03);  // Set Low Power Mode with CLK_DIV = 3
+ *
+ */
+void TLA2528_Set_OpMode(uint8_t osc_sel, uint8_t clk_div) {
+    uint8_t reg_value;
+
+    // Read the current value of the OPMODE_CFG register
+    reg_value = TLA2528_Read_Register(OPMODE_CFG_ADDRESS);
+
+    // Clear the OSC_SEL and CLK_DIV bits (Bit 4 and Bit 3:0)
+    reg_value &= ~(OSC_SEL_MASK | 0x0F);
+
+    // Set the new OSC_SEL value
+    reg_value |= (osc_sel & OSC_SEL_MASK);
+
+    // Set the new CLK_DIV value (ensure only lower 4 bits are used)
+    reg_value |= (clk_div & 0x0F);
+
+    // Write the updated value back to the OPMODE_CFG register
+    TLA2528_Write_Register(OPMODE_CFG_ADDRESS, reg_value);
+}
+
+// Config switch analog/digital GPIO
+/*
+ * PIN_CFG Register (Address = 0x5)
+ * example
+ * TLA2528_Set_PinConfig(PIN_CFG_AIN0 | PIN_CFG_AIN3 | PIN_CFG_AIN5);
+// Enables AIN0, AIN3, and AIN5
+ *  กำหนดให้ทุกช่องเป็น GPIO
+ *	TLA2528_Set_PinConfig(0xFF);  // ตั้งค่า CH7-CH0 เป็น GPIO ทั้งหมด
+ *
+ */
+void TLA2528_Set_PinConfig(uint8_t pin_config) {
+    // Ensure only valid bits are set (Bit 7:0)
+    pin_config &= PIN_CFG_MASK;
+
+    // Write the pin configuration to the PIN_CFG register
+    TLA2528_Write_Register(PIN_CFG_ADDRESS, pin_config);
+}
+
+/*
+ * GPIO_CFG Register (Address = 0x7)
+ * example
+ * TLA2528_Enable_GPIO(GPIO_CFG_GPO2);  // เปิดใช้งาน GPO2
+ * TLA2528_Disable_GPIO(GPIO_CFG_GPO2); // ปิดใช้งาน GPO2
+ *
+ */
+uint8_t TLA2528_Read_GPIO_Config(void) {
+    return TLA2528_Read_Register(GPIO_CFG_ADDRESS);
+}
+
+void TLA2528_Set_GPIO_Config(uint8_t config) {
+    TLA2528_Write_Register(GPIO_CFG_ADDRESS, config);
+}
+
+void TLA2528_Enable_GPIO(uint8_t gpio_pin) {
+    uint8_t current_config = TLA2528_Read_GPIO_Config(); // อ่านค่าปัจจุบัน
+    current_config |= gpio_pin;  // เปิดใช้งานขาที่กำหนด
+    TLA2528_Set_GPIO_Config(current_config);
+}
+
+void TLA2528_Disable_GPIO(uint8_t gpio_pin) {
+    uint8_t current_config = TLA2528_Read_GPIO_Config(); // อ่านค่าปัจจุบัน
+    current_config &= ~gpio_pin;  // ปิดใช้งานขาที่กำหนด
+    TLA2528_Set_GPIO_Config(current_config);
+}
+
+/*
+ * on / off gpio
+ * GPO_DRIVE_CFG Register (Address = 0x9)
+ */
+
+uint8_t TLA2528_Read_GPO_Drive_Config(void) {
+    return TLA2528_Read_Register(GPO_DRIVE_CFG_ADDRESS);
+}
+void TLA2528_Set_GPO_Drive_Config(uint8_t config) {
+    TLA2528_Write_Register(GPO_DRIVE_CFG_ADDRESS, config);
+    /*
+     * TLA2528_Set_GPO_Drive_Config(0x0F);  // ตั้งค่า GPO Drive เป็น 0x0F (เปิดใช้งาน GPO0-GPO3)
+     *
+     */
+}
+void TLA2528_Enable_GPO_Drive(uint8_t gpo_pin) {
+    uint8_t current_config = TLA2528_Read_GPO_Drive_Config(); // อ่านค่าปัจจุบัน
+    current_config |= gpo_pin;  // เปิดใช้งาน GPO Drive ที่กำหนด
+    TLA2528_Set_GPO_Drive_Config(current_config);
+}
+
+void TLA2528_Disable_GPO_Drive(uint8_t gpo_pin) {
+    uint8_t current_config = TLA2528_Read_GPO_Drive_Config(); // อ่านค่าปัจจุบัน
+    current_config &= ~gpo_pin;  // ปิดใช้งาน GPO Drive ที่กำหนด
+    TLA2528_Set_GPO_Drive_Config(current_config);
+}
+/*
+ * TLA2528_Enable_GPO_Drive(GPO_DRIVE_CFG_GPO0);  // เปิดใช้งาน GPO0
+TLA2528_Disable_GPO_Drive(GPO_DRIVE_CFG_GPO0); // ปิดใช้งาน GPO0
+ *
+ */
+
+/*GPO_VALUE Register (Address = 0xB)
+ *
+ */
+uint8_t Read_GPO_Value(void) {
+    return TLA2528_Read_Register(GPO_VALUE_ADDRESS);
+}
+
+void Set_GPO_Value(uint8_t value) {
+    TLA2528_Write_Register(GPO_VALUE_ADDRESS, value);
+}
+void Set_GPO_Pin_High(uint8_t gpo_pin) {
+    uint8_t current_value = Read_GPO_Value();      // อ่านค่า GPO VALUE ปัจจุบัน
+    current_value |= gpo_pin;                      // ตั้งค่า GPO pin ที่ระบุให้เป็น High
+    Set_GPO_Value(current_value);                  // ส่งค่ากลับไปที่ GPO_VALUE Register
+}
+
+void Set_GPO_Pin_Low(uint8_t gpo_pin) {
+    uint8_t current_value = Read_GPO_Value();      // อ่านค่า GPO VALUE ปัจจุบัน
+    current_value &= ~gpo_pin;                     // ตั้งค่า GPO pin ที่ระบุให้เป็น Low
+    Set_GPO_Value(current_value);                  // ส่งค่ากลับไปที่ GPO_VALUE Register
+}
+void Set_All_GPOs_High(void) {
+    Set_GPO_Value(0xFF);  // ตั้งค่าทุก GPO pin ให้เป็น High
+}
+void Set_All_GPOs_Low(void) {
+    Set_GPO_Value(0x00);  // ตั้งค่าทุก GPO pin ให้เป็น Low
+}

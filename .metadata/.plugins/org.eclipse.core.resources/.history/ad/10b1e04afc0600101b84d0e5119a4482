@@ -1,0 +1,211 @@
+/*
+ * tla2528.c
+ *
+ *  Created on: Mar 22, 2025
+ *      Author: user
+ */
+
+#include "tla2528.h"
+
+/* I2C Handle definition */
+extern I2C_HandleTypeDef hi2c5;
+
+/* Function to read a register from the TLA2528 */
+HAL_StatusTypeDef read_register_tla2528(uint8_t reg_addr, uint8_t *data, uint16_t size) {
+    HAL_StatusTypeDef status;
+
+    status = HAL_I2C_Mem_Read(&hi2c5, TLA2528_ADDRESS << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, data, size, HAL_MAX_DELAY);
+
+    return status;
+}
+
+/* Function to write to a register on the TLA2528 */
+HAL_StatusTypeDef write_register_tla2528(uint8_t reg_addr, uint8_t *data, uint16_t size) {
+    HAL_StatusTypeDef status;
+
+    status = HAL_I2C_Mem_Write(&hi2c5, TLA2528_ADDRESS << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, data, size, HAL_MAX_DELAY);
+
+    return status;
+}
+
+/* Function to initialize TLA2528 settings (example: SYSTEM_STATUS) */
+void init_tla2528(void) {
+    uint8_t system_status = SYSTEM_STATUS_DEFAULT;
+    HAL_StatusTypeDef status;
+
+    /* Write the default system status */
+    status = write_register_tla2528(SYSTEM_STATUS_ADDRESS, &system_status, sizeof(system_status));
+    if (status != HAL_OK) {
+        printf("Error writing SYSTEM_STATUS register\n");
+    }
+}
+
+/* Function to check the SEQ_STATUS field in SYSTEM_STATUS register */
+uint8_t check_seq_status(void) {
+    uint8_t status = 0;
+    HAL_StatusTypeDef result;
+
+    /* Read the SYSTEM_STATUS register */
+    result = read_register_tla2528(SYSTEM_STATUS_ADDRESS, &status, sizeof(status));
+    if (result != HAL_OK) {
+        printf("Error reading SYSTEM_STATUS register\n");
+        return 0xFF;  // Return an invalid value to indicate failure
+    }
+
+    /* Mask the SEQ_STATUS field */
+    status &= SEQ_STATUS_MASK;
+    return status;
+}
+
+/* Function to configure GENERAL_CFG register */
+void config_general_cfg(uint8_t cnvst, uint8_t ch_rst, uint8_t cal, uint8_t rst) {
+    uint8_t general_cfg = GENERAL_CFG_DEFAULT;
+
+    /* Set the CNVST, CH_RST, CAL, and RST fields */
+    general_cfg |= (cnvst & CNVST_MASK);
+    general_cfg |= (ch_rst & CH_RST_MASK);
+    general_cfg |= (cal & CAL_MASK);
+    general_cfg |= (rst & RST_MASK);
+
+    HAL_StatusTypeDef status;
+    status = write_register_tla2528(GENERAL_CFG_ADDRESS, &general_cfg, sizeof(general_cfg));
+    if (status != HAL_OK) {
+        printf("Error configuring GENERAL_CFG register\n");
+    }
+}
+
+/* Function to configure DATA_CFG register */
+void config_data_cfg(uint8_t fix_pat, uint8_t append_status) {
+    uint8_t data_cfg = DATA_CFG_DEFAULT;
+
+    /* Set the FIX_PAT and APPEND_STATUS fields */
+    data_cfg |= (fix_pat & FIX_PAT_MASK);
+    data_cfg |= (append_status & APPEND_STATUS_MASK);
+
+    HAL_StatusTypeDef status;
+    status = write_register_tla2528(DATA_CFG_ADDRESS, &data_cfg, sizeof(data_cfg));
+    if (status != HAL_OK) {
+        printf("Error configuring DATA_CFG register\n");
+    }
+}
+
+/* Function to set the OSR_CFG register */
+void set_osr_cfg(uint8_t osr) {
+    uint8_t osr_cfg = OSR_CFG_DEFAULT;
+
+    /* Set the OSR field */
+    osr_cfg |= (osr & OSR_MASK);
+
+    HAL_StatusTypeDef status;
+    status = write_register_tla2528(OSR_CFG_ADDRESS, &osr_cfg, sizeof(osr_cfg));
+    if (status != HAL_OK) {
+        printf("Error configuring OSR_CFG register\n");
+    }
+}
+
+/* Function to configure the OPMODE_CFG register */
+void config_opmode_cfg(uint8_t osc_sel) {
+    uint8_t opmode_cfg = OPMODE_CFG_DEFAULT;
+
+    /* Set the OSC_SEL field */
+    opmode_cfg |= (osc_sel & OSC_SEL_MASK);
+
+    HAL_StatusTypeDef status;
+    status = write_register_tla2528(OPMODE_CFG_ADDRESS, &opmode_cfg, sizeof(opmode_cfg));
+    if (status != HAL_OK) {
+        printf("Error configuring OPMODE_CFG register\n");
+    }
+}
+
+/* Function to set the PIN_CFG register */
+void set_pin_cfg(uint8_t pin_cfg) {
+    HAL_StatusTypeDef status;
+
+    status = write_register_tla2528(PIN_CFG_ADDRESS, &pin_cfg, sizeof(pin_cfg));
+    if (status != HAL_OK) {
+        printf("Error setting PIN_CFG register\n");
+    }
+}
+
+/* Function to configure GPIO_CFG register */
+void config_gpio_cfg(uint8_t gpio_cfg) {
+    HAL_StatusTypeDef status;
+
+    status = write_register_tla2528(GPIO_CFG_ADDRESS, &gpio_cfg, sizeof(gpio_cfg));
+    if (status != HAL_OK) {
+        printf("Error configuring GPIO_CFG register\n");
+    }
+}
+
+/* Function to configure GPO_DRIVE_CFG register */
+void config_gpo_drive_cfg(uint8_t gpo_drive_cfg) {
+    HAL_StatusTypeDef status;
+
+    status = write_register_tla2528(GPO_DRIVE_CFG_ADDRESS, &gpo_drive_cfg, sizeof(gpo_drive_cfg));
+    if (status != HAL_OK) {
+        printf("Error configuring GPO_DRIVE_CFG register\n");
+    }
+}
+
+/* Function to set GPO_VALUE register */
+void set_gpo_value(uint8_t gpo_value) {
+    HAL_StatusTypeDef status;
+
+    status = write_register_tla2528(GPO_VALUE_ADDRESS, &gpo_value, sizeof(gpo_value));
+    if (status != HAL_OK) {
+        printf("Error setting GPO_VALUE register\n");
+    }
+}
+
+/* Function to get GPI_VALUE register */
+uint8_t get_gpi_value(void) {
+    uint8_t gpi_value = 0;
+    HAL_StatusTypeDef status;
+
+    status = read_register_tla2528(GPI_VALUE_ADDRESS, &gpi_value, sizeof(gpi_value));
+    if (status != HAL_OK) {
+        printf("Error reading GPI_VALUE register\n");
+        return 0xFF;  // Return an invalid value
+    }
+
+    return gpi_value;
+}
+
+/* Function to set the SEQUENCE_CFG register */
+void set_sequence_cfg(uint8_t seq_start, uint8_t seq_mode) {
+    uint8_t sequence_cfg = SEQUENCE_CFG_DEFAULT;
+
+    /* Set SEQ_START and SEQ_MODE fields */
+    sequence_cfg |= (seq_start & SEQ_START_MASK);
+    sequence_cfg |= (seq_mode & SEQ_MODE_MASK);
+
+    HAL_StatusTypeDef status;
+    status = write_register_tla2528(SEQUENCE_CFG_ADDRESS, &sequence_cfg, sizeof(sequence_cfg));
+    if (status != HAL_OK) {
+        printf("Error configuring SEQUENCE_CFG register\n");
+    }
+}
+
+/* Function to set the MANUAL_CH_SEL register */
+void set_manual_ch_sel(uint8_t ch_id) {
+    uint8_t manual_ch_sel = MANUAL_CH_SEL_DEFAULT;
+
+    /* Set the MANUAL_CHID field */
+    manual_ch_sel |= (ch_id & MANUAL_CHID_MASK);
+
+    HAL_StatusTypeDef status;
+    status = write_register_tla2528(MANUAL_CH_SEL_ADDRESS, &manual_ch_sel, sizeof(manual_ch_sel));
+    if (status != HAL_OK) {
+        printf("Error setting MANUAL_CH_SEL register\n");
+    }
+}
+
+/* Function to set the AUTO_SEQ_CH_SEL register */
+void set_auto_seq_ch_sel(uint8_t ch_sel) {
+    HAL_StatusTypeDef status;
+
+    status = write_register_tla2528(AUTO_SEQ_CH_SEL_ADDRESS, &ch_sel, sizeof(ch_sel));
+    if (status != HAL_OK) {
+        printf("Error setting AUTO_SEQ_CH_SEL register\n");
+    }
+}

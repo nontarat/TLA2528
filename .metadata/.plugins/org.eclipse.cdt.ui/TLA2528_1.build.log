@@ -1,0 +1,10 @@
+15:46:48 **** Incremental Build of configuration Debug for project TLA2528_1 ****
+make -j4 all 
+arm-none-eabi-size  TLA2528_1.elf 
+   text	   data	    bss	    dec	    hex	filename
+  39364	    472	   2136	  41972	   a3f4	TLA2528_1.elf
+Finished building: default.size.stdout
+ 
+
+15:46:49 Build Finished. 0 errors, 0 warnings. (took 597ms)
+

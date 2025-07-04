@@ -1,0 +1,112 @@
+/*
+ * tla2528_lib.c
+ *
+ *  Created on: Apr 3, 2025
+ *      Author: user
+ */
+#include "tla2528_lib.h"
+#define TLA2528_I2C_ADDR  (0x10 << 1)  // ที่อยู่ I2C ของ TLA2528
+
+uint16_t tla2528_raw_data[8];  // เก็บค่า ADC 8 ช่อง
+//0001 0000b Single register read
+//0000 1000b Single register write
+//0001 1000b Set bit
+//0010 0000b Clear bit
+//0011 0000b Reading a continuous block of registers
+//0010 1000b Writing a continuous block of registers
+void TLA2528_Init(void) {
+    uint8_t config_data[3];
+
+    // 1. ตั้งค่า SEQ_MODE = 1
+    config_data[0] = 0x18;  //Set bit
+    config_data[1] = 0x10;  //Register Address (SEQUENCE_CFG Register)
+    config_data[2] = 0x00;  //Register Data (SEQ_MODE)
+    HAL_I2C_Master_Transmit(&hi2c5, TLA2528_I2C_ADDR, config_data, 3, HAL_MAX_DELAY);
+
+    // 2. กำหนดขาเป็น AIN (กำหนดให้ทุกขาเป็น Analog Input)PIN_CFG Register (Address = 0x5)
+    config_data[0] = 0x08;  //Single register write
+    config_data[1] = 0x05;//??Reg Address in the Block
+    config_data[1] = 0x00;//Channel is configured as analog input.
+    HAL_I2C_Master_Transmit(&hi2c5, TLA2528_I2C_ADDR, config_data, 3, HAL_MAX_DELAY);
+
+    // 3. เปิดใช้งานช่องที่ต้องการอ่านใน AUTO_SEQ_CHSEL (Address = 0X12)
+    config_data[0] = 0x08;  //Single register write
+    config_data[1] = 0x12;  //Register Address (SEQUENCE_CFG Register)
+    config_data[2] = 0x00;  //Register Data (เปิดใช้งานทุกช่อง)
+    HAL_I2C_Master_Transmit(&hi2c5, TLA2528_I2C_ADDR, config_data, 3, HAL_MAX_DELAY);
+
+    // 4.  Append 4-bit  (Address = 0X02)
+    config_data[0] = 0x18;  //Set bit
+    config_data[1] = 0x02;  //Register Address (SEQUENCE_CFG Register)
+    config_data[2] = 0x00;  //Register Data (SEQ_MODE)
+    HAL_I2C_Master_Transmit(&hi2c5, TLA2528_I2C_ADDR, config_data, 3, HAL_MAX_DELAY);
+}
+
+HAL_StatusTypeDef TLA2528_Write_Register(uint8_t reg_address, uint8_t reg_value) {
+	HAL_StatusTypeDef status;
+	// Use HAL I2C to write value to the register
+	status = HAL_I2C_Mem_Write(&hi2c5, TLA2528_I2C_ADDR, reg_address,
+	I2C_MEMADD_SIZE_8BIT, &reg_value, 1, 1000);
+	// Check the write status
+	if (status != HAL_OK) {
+		printf("I2C Write Error: 0x%02X\n", reg_address);
+		return HAL_ERROR;  // Return error if write fails
+	}
+
+	return HAL_OK;
+}
+
+
+void TLA2528_ReadChannels(void) {
+    uint8_t data_buf[16];
+    uint8_t config_data[3];
+//---------------Enable channel sequencing SEQ_START = 1 (0x10 SEQUENCE_CFG Register bit4) -------------
+    // 6. เริ่ม Auto-sequencing
+    config_data[0] = 0x18;  //Set bit
+    config_data[1] = 0x10;  //Register Address
+    config_data[2] = 0x00;  //Register Data
+    HAL_I2C_Master_Transmit(&hi2c5, TLA2528_I2C_ADDR, config_data, 3, HAL_MAX_DELAY);
+    // 7. ส่ง Conversion Start Frame
+//    uint8_t start_cmd = TLA2528_RESULT_REG;
+    config_data[0] = 0x30;//Reading a Continuous Block of Registers
+    config_data[1] = 0x11;//??Reg Address in the Block (CHANNEL_SEL)
+    config_data[1] = 0x00;//??Reg Address in the Block (CH0)
+    HAL_I2C_Master_Transmit(&hi2c5, TLA2528_I2C_ADDR, config_data, 2, HAL_MAX_DELAY);
+    // 8. อ่านค่าทุกช่อง
+    HAL_I2C_Master_Receive(&hi2c5, TLA2528_I2C_ADDR, data_buf, 16, HAL_MAX_DELAY);
+    for (int i = 0; i < 8; i++) {
+        tla2528_raw_data[i] = (data_buf[i * 2] << 8) | data_buf[i * 2 + 1];
+    }
+//---------------Disable channel sequencing SEQ_START = 0 (0x10 SEQUENCE_CFG Register bit4) -------------
+    config_data[0] = 0x20;//Clear bit
+    config_data[1] = 0x10;//Register Address
+    config_data[2] = 0x10;//Register Data
+    HAL_I2C_Master_Transmit(&hi2c5, TLA2528_I2C_ADDR, config_data, 3, HAL_MAX_DELAY);
+
+}
+
+void TLA2528_ReadChannel(uint8_t channel) {
+    if (channel >= 8) return;
+
+    uint8_t adc_data[2];
+
+    // 1. เลือกช่องที่ต้องการอ่าน
+    TLA2528_Write_Register(0x11, channel);
+
+    // 2. เริ่มต้นการแปลงค่า ADC
+    TLA2528_Write_Register(0x01, 0x08);
+
+    // 3. อ่านค่าผลลัพธ์ ADC
+    HAL_I2C_Master_Receive(&hi2c5, TLA2528_I2C_ADDR, adc_data, 2, HAL_MAX_DELAY);
+    tla2528_raw_data[channel] = (adc_data[0] << 8) | adc_data[1];
+}
+
+uint16_t TLA2528_GetChannel(uint8_t channel) {
+    if (channel >= 8) return 0;
+    return tla2528_raw_data[channel];
+}
+void TLA2528_StopSequence(void) {
+    uint8_t stop_cmd[] = { PIN_CFG_ADDRESS, 0x00 };
+    HAL_I2C_Master_Transmit(&hi2c5, TLA2528_I2C_ADDR, stop_cmd, 2, HAL_MAX_DELAY);
+}
+

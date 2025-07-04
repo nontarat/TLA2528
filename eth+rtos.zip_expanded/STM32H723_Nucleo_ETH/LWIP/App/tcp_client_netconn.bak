@@ -1,0 +1,153 @@
+#include "lwip.h"
+#include "lwip/api.h" // สำหรับ netconn
+#include "lwip/inet.h"
+#include <string.h>
+#include <errno.h>
+
+extern UART_HandleTypeDef huart3;
+char json_data[] = "{\"temperature\":23.5,\"humidity\":60,\"measure\":888}";
+
+void parse_led_status(char *buffer);
+
+void send_post_request(struct netconn *conn, const char *json_data) {
+    char *http_request_template =
+        "POST /onoffled/getTNK.php HTTP/1.1\r\n"
+        "Host: tanakulgroup.com\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: %d\r\n"
+        "Connection: close\r\n\r\n"
+        "%s";
+
+    int json_length = strlen(json_data);
+    char http_request[512];
+    snprintf(http_request, sizeof(http_request), http_request_template, json_length, json_data);
+
+    // ส่งข้อมูลไปยังเซิร์ฟเวอร์
+    if (netconn_write(conn, http_request, strlen(http_request), NETCONN_NOCOPY) != ERR_OK) {
+        char *error_message = "Error sending data\r\n";
+        HAL_UART_Transmit(&huart3, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
+    }
+}
+
+void connect_to_server(void) {
+    struct netconn *conn;
+    err_t err;
+    ip_addr_t server_ip;
+    // char *server_ip = "104.26.10.187";  // IP ของ JSONPlaceholder
+    // char *server_ip = "jsonplaceholder.typicode.com";  // ใช้ชื่อเซิร์ฟเวอร์แทน IP
+    const char *server_ip_str = "13.67.106.185";  // IP ของ server
+    int server_port = 80; // HTTP port
+
+    // แปลง IP จาก string เป็น ip_addr_t
+    ipaddr_aton(server_ip_str, &server_ip);
+
+    // สร้าง netconn ใหม่
+    conn = netconn_new(NETCONN_TCP);
+    if (conn == NULL) {
+        char *error_message = "Error creating netconn\r\n";
+        HAL_UART_Transmit(&huart3, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
+        return;
+    }
+
+    // เชื่อมต่อไปยัง server
+    do {
+        err = netconn_connect(conn, &server_ip, server_port);
+        if (err != ERR_OK) {
+            char error_message[50];
+            snprintf(error_message, sizeof(error_message), "Error connecting to server: %d\r\n", err);
+            HAL_UART_Transmit(&huart3, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
+            netconn_delete(conn);
+            HAL_Delay(2000);  // รอ 2 วินาทีก่อนลองเชื่อมต่อใหม่
+            conn = netconn_new(NETCONN_TCP);  // สร้าง netconn ใหม่
+        }
+    } while (err != ERR_OK);
+
+    // ส่ง POST request
+    send_post_request(conn, json_data);
+
+    // รับข้อมูลจาก server
+    struct netbuf *buf;
+    void *data;
+    u16_t len;
+
+    while ((err = netconn_recv(conn, &buf)) == ERR_OK) {
+        netbuf_data(buf, &data, &len);
+        // ส่งข้อมูลที่ได้รับผ่าน UART3
+        HAL_UART_Transmit(&huart3, (uint8_t *)data, len, HAL_MAX_DELAY);
+        parse_led_status(data); // แก้ไขที่นี่ให้ส่ง data
+        netbuf_delete(buf);
+    }
+
+    if (err != ERR_OK) {
+        char error_message[50];
+        snprintf(error_message, sizeof(error_message), "Error receiving data: %d\r\n", err);
+        HAL_UART_Transmit(&huart3, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
+    }
+
+    // ปิด netconn
+    netconn_close(conn);
+    netconn_delete(conn);
+}
+
+void parse_led_status(char *buffer) {
+    // ตรวจสอบ SW1
+    char *sw1_data = strstr(buffer, "\"LNUM\":\"SW1\"");
+    if (sw1_data != NULL) {
+        char *led_status = strstr(sw1_data, "\"led_status\":\"");
+        if (led_status != NULL) {
+            led_status += strlen("\"led_status\":\"");
+            char status = led_status[0];
+            HAL_UART_Transmit(&huart3, (uint8_t *)&status, 1, HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart3, (uint8_t *)"\r\n", 2, HAL_MAX_DELAY);
+
+            if (status == '1') {
+                HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
+            } else if (status == '0') {
+                HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+            }
+        }
+    } else {
+        HAL_UART_Transmit(&huart3, (uint8_t *)"SW1 data not found\r\n", 21, HAL_MAX_DELAY);
+    }
+
+    // ตรวจสอบ SW2
+    char *sw2_data = strstr(buffer, "\"LNUM\":\"SW2\"");
+    if (sw2_data != NULL) {
+        char *led_status = strstr(sw2_data, "\"led_status\":\"");
+        if (led_status != NULL) {
+            led_status += strlen("\"led_status\":\"");
+            char status = led_status[0];
+            HAL_UART_Transmit(&huart3, (uint8_t *)&status, 1, HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart3, (uint8_t *)"\r\n", 2, HAL_MAX_DELAY);
+
+            if (status == '1') {
+                HAL_GPIO_WritePin(LED_YELLOW_GPIO_Port, LED_YELLOW_Pin, GPIO_PIN_SET);
+            } else if (status == '0') {
+                HAL_GPIO_WritePin(LED_YELLOW_GPIO_Port, LED_YELLOW_Pin, GPIO_PIN_RESET);
+            }
+        }
+    } else {
+        HAL_UART_Transmit(&huart3, (uint8_t *)"SW2 data not found\r\n", 21, HAL_MAX_DELAY);
+    }
+
+    // ตรวจสอบ SW3
+    char *sw3_data = strstr(buffer, "\"LNUM\":\"SW3\"");
+    if (sw3_data != NULL) {
+        char *led_status = strstr(sw3_data, "\"led_status\":\"");
+        if (led_status != NULL) {
+            led_status += strlen("\"led_status\":\"");
+            char status = led_status[0];
+
+            HAL_UART_Transmit(&huart3, (uint8_t *)&status, 1, HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart3, (uint8_t *)"\r\n", 2, HAL_MAX_DELAY);
+
+            if (status == '1') {
+                HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
+            } else if (status == '0') {
+                HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+            }
+        }
+    } else {
+        HAL_UART_Transmit(&huart3, (uint8_t *)"SW3 data not found\r\n", 21, HAL_MAX_DELAY);
+    }
+}

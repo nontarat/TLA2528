@@ -1,0 +1,6 @@
+../Core/Src/main.c:462:6:StartDefaultTask	8	static
+../Core/Src/main.c:84:6:send_ip_via_usart	40	static
+../Core/Src/main.c:203:6:SystemClock_Config	136	static,ignoring_inline_asm
+../Core/Src/main.c:111:5:main	88	static,ignoring_inline_asm
+../Core/Src/main.c:568:6:HAL_TIM_PeriodElapsedCallback	0	static
+../Core/Src/main.c:585:6:Error_Handler	0	static,ignoring_inline_asm

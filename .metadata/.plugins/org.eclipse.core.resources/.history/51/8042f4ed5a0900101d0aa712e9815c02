@@ -1,0 +1,62 @@
+/*
+ * tla2528_liv.c
+ *
+ *  Created on: Mar 24, 2025
+ *      Author: user
+ */
+
+#include "tla2528_lib.h"
+
+#define TLA2528_ADDRESS 0x10 // Replace with the actual I2C address of the TLA2528
+#define ADC_RESULT_REGISTER 0x00 // ที่อยู่ Register สำหรับผลลัพธ์ ADC
+/*
+uint8_t TLA2528_read_from_register(uint8_t reg_addr) {
+	uint8_t data = 0;
+	HAL_I2C_Mem_Read(&hi2c5, TLA2528_ADDRESS << 1, reg_addr,I2C_MEMADD_SIZE_8BIT, &data, 1, HAL_MAX_DELAY);
+	return data;
+}
+*/
+uint8_t TLA2528_read_from_register(uint8_t reg_addr, uint8_t* data, uint8_t length) {
+    // อ่านข้อมูลจาก TLA2528
+    if (HAL_I2C_Mem_Read(&hi2c5, TLA2528_ADDRESS << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, data, length, HAL_MAX_DELAY) != HAL_OK) {
+        // ถ้าเกิดข้อผิดพลาดในการอ่านข้อมูล
+        return 0xFF;  // ค่าผิดพลาด
+    }
+    return 0;  // สำเร็จ
+}
+
+void TLA2528_write_to_register(uint8_t reg_addr, uint8_t data) {
+	HAL_I2C_Mem_Write(&hi2c5, TLA2528_ADDRESS << 1, reg_addr,
+			I2C_MEMADD_SIZE_8BIT, &data, 1, HAL_MAX_DELAY);
+}
+
+uint16_t TLA2528_read_one_channel_data(uint8_t channel_num) {
+	 uint8_t data[2] = {0};
+	    uint16_t result = 0;
+
+	    // เลือกช่องสัญญาณ
+	    TLA2528_write_to_register(MANUAL_CH_SEL_ADDRESS, channel_num);
+
+	    // อาจต้องเพิ่มเวลาหน่วงเพื่อให้ ADC พร้อม
+	    HAL_Delay(1);
+
+	    // อ่านข้อมูลจาก TLA2528 (สมมติว่าใช้ register 0x00 และ 0x01 สำหรับข้อมูล ADC)
+	    if (TLA2528_read_from_register(0x00, data, 2) == 0) {
+	        // รวมข้อมูลที่ได้เป็น 16-bit
+	        result = (data[0] << 8) | data[1];
+	    } else {
+	        // การอ่านข้อมูลผิดพลาด
+	        result = 0xFFFF;  // ค่าผิดพลาด
+	    }
+
+	    return result;
+}
+
+uint16_t* TLA2528_read_all_channels(void) {
+	static uint16_t channel_data[8]; // สำหรับ 8 ช่อง AIN
+	for (uint8_t i = 0; i < 8; i++) {
+		channel_data[i] = TLA2528_read_one_channel_data(i); // อ่านข้อมูลจากแต่ละช่อง
+	}
+	return channel_data;
+}
+
